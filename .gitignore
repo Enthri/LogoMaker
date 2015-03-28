@@ -60,5 +60,7 @@ $RECYCLE.BIN/
 
 # Eclipse fragments
 doc/
+.settings/
+bin/
 *.project
 *.classpath
