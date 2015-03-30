@@ -3,27 +3,28 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
-import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Engine {
-	private static PaintComponent painter;
+	private static JComponent painter;
 	
 	private static JFrame frame;
 	private static JFileChooser fileChooser;
@@ -32,13 +33,28 @@ public class Engine {
 	private static JPanel layerContainer;
 	private static JPanel toolPanel;
 	
+	private static ArrayList<Layer> layerList = new ArrayList<Layer>();
+	
+	@SuppressWarnings("serial")
 	public static void main(String[] args) {
 		frame = new JFrame("test");
 		fileChooser = new JFileChooser();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(new Dimension(800, 600));
 		frame.setMinimumSize(new Dimension(600, 400));
-		painter = new PaintComponent();
+		painter = new JComponent() {
+			@Override
+			public void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				g.setColor(this.getBackground());
+				g.fillRect(0, 0, this.getWidth(), this.getHeight());
+				g.setColor(Color.BLACK);
+				Graphics2D render = (Graphics2D) g;
+				for(Layer layerVar : layerList) {
+					layerVar.paint(render);
+				}
+			}
+		};
 		painter.setBackground(Color.WHITE);
 		painter.setBorder(BorderFactory.createEtchedBorder());
 		frame.add(painter);
@@ -59,7 +75,7 @@ public class Engine {
 		temp.add(createMenuItem("Save", null));
 		temp.add(createMenuItem("Save As", null));
 		temp.addSeparator();
-		temp.add(createMenuItem("Export", new ActionListener(){
+		temp.add(createMenuItem("Export", new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				fileChooser.setAcceptAllFileFilterUsed(false);
@@ -76,7 +92,7 @@ public class Engine {
 			}
 		}));
 		temp.addSeparator();
-		temp.add(createMenuItem("Exit", new ActionListener(){
+		temp.add(createMenuItem("Exit", new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				frame.dispose();
@@ -92,16 +108,7 @@ public class Engine {
 		temp.add(createMenuItem("Add Layer", new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JButton button = new JButton("LAYER");
-				button.addActionListener(new ActionListener(){
-					@Override
-					public void actionPerformed(ActionEvent e2) {
-						painter.randomizeLocation();
-						revaluate(painter);
-					}
-				});
-				layerContainer.add(button);
-				revaluate(layerContainer);
+				addLayer("Layer: " + layerList.size());
 			}
 		}));
 		menubar.add(temp);
@@ -118,5 +125,11 @@ public class Engine {
 	private static void revaluate(Component c) {
 		c.revalidate();
 		c.repaint();
+	}
+	
+	private static void addLayer(String name) {
+		layerList.add(new Layer(name));
+		layerContainer.add(layerList.get(layerList.size() - 1).getButton());
+		revaluate(layerContainer);
 	}
 }
