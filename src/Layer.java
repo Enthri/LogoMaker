@@ -6,15 +6,16 @@ import javax.swing.JPanel;
 
 public class Layer {
 	
-	private String name;
-	private JButton button;
+	protected String name;
+	protected JButton button;
 	
-	private JComponent painter;
+	protected JComponent painter;
 	
 	public Layer(JComponent jcomponentVar, String stringVar) {
 		name = stringVar;
 		painter = jcomponentVar;
 		button = new JButton(stringVar);
+		button.setFocusable(false);
 	}
 	
 	public String getName() {

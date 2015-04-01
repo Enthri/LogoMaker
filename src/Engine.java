@@ -12,6 +12,7 @@ import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -26,6 +27,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Engine {
@@ -38,11 +40,19 @@ public class Engine {
 	private static JPanel layerContainer;
 	private static JPanel toolPanel;
 	
+	private static BufferedImage image;
+	
 	private static ArrayList<Layer> layerList = new ArrayList<Layer>();
 	
 	@SuppressWarnings("serial")
 	public static void main(String[] args) {
-		frame = new JFrame("test");
+		try {
+			image = ImageIO.read(new File("resources/logos.png"));
+		} catch (IOException e2) {
+			image = null;
+			System.out.println("Could not load sprite sheet");
+		}
+		frame = new JFrame("Troi's Logo Designer");
 		fileChooser = new JFileChooser();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(new Dimension(800, 600));
@@ -98,15 +108,12 @@ public class Engine {
 		JMenu temp;
 		JMenuBar menubar = new JMenuBar();
 		temp = new JMenu("File");
-		temp.add(createMenuItem("Open", null));
-		temp.add(createMenuItem("Save", null));
-		temp.add(createMenuItem("Save As", null));
-		temp.addSeparator();
-		temp.add(createMenuItem("Export", new ActionListener() {
+		temp.add(createMenuItem("Export", KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_MASK), new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				fileChooser.setAcceptAllFileFilterUsed(false);
 				fileChooser.setFileFilter(new FileNameExtensionFilter("PNG file", ".png"));
+				fileChooser.setSelectedFile(new File("*.png"));
 				if(fileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
 					BufferedImage image = new BufferedImage(painter.getWidth(), painter.getHeight(), BufferedImage.TYPE_INT_ARGB_PRE);
 					painter.paintAll(image.getGraphics());
@@ -132,15 +139,29 @@ public class Engine {
 		temp.add(createMenuItem("Paste", null));
 		menubar.add(temp);
 		temp = new JMenu("Layers");
-		temp.add(createMenuItem("Add Layer", new ActionListener() {
+		temp.add(createMenuItem("Add Text Layer", KeyStroke.getKeyStroke(KeyEvent.VK_1, KeyEvent.CTRL_MASK), new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				addLayer(new Layer(painter, "Layer: " + layerList.size()));
+				addLayer(new LayerText(painter, "Layer: " + layerList.size()));
+			}
+		}));
+		temp.add(createMenuItem("Add Image Layer", KeyStroke.getKeyStroke(KeyEvent.VK_2, KeyEvent.CTRL_MASK), new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				addLayer(new LayerLogo(image, painter, "Layer: " + layerList.size()));
+			}
+		}));
+		temp.addSeparator();
+		temp.add(createMenuItem("Remove Current Layer", KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_MASK), new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(layerList.size() > 0) removeLayer(layerList.get(0));
 			}
 		}));
 		menubar.add(temp);
 		frame.setJMenuBar(menubar);
-		frame.addKeyListener(new KeyListener() {
+		painter.setFocusable(true);
+		painter.addKeyListener(new KeyListener() {
 			@Override
 			public void keyPressed(KeyEvent e) {
 				if(layerList.size() > 0) layerList.get(0).keyPressed(e.getKeyCode());
@@ -154,12 +175,19 @@ public class Engine {
 			public void keyTyped(KeyEvent e) {
 			}
 		});
+		painter.requestFocus();
 		frame.setVisible(true);
 	}
 	
 	private static JMenuItem createMenuItem(String title, ActionListener listener) {
 		JMenuItem temp = new JMenuItem(title);
 		temp.addActionListener(listener);
+		return temp;
+	}
+	
+	private static JMenuItem createMenuItem(String title, KeyStroke accelerator, ActionListener listener) {
+		JMenuItem temp = createMenuItem(title, listener);
+		temp.setAccelerator(accelerator);
 		return temp;
 	}
 	
@@ -181,6 +209,16 @@ public class Engine {
 		selectLayer(layer);
 	}
 	
+	private static void removeLayer(Layer layer) {
+		if(layerList.indexOf(layer) > -1) {
+			layerContainer.remove(layer.getButton());
+			revaluate(layerContainer);
+			layerList.remove(layer);
+			if(layerList.size() > 0) selectLayer(layerList.get(0));
+			else toolPanel.removeAll();
+		}
+	}
+	
 	private static void selectLayer(Layer layer) {
 		if(layerList.indexOf(layer) > -1) {
 			for(Layer layer2 : layerList) layer2.getButton().setEnabled(true);
@@ -191,5 +229,6 @@ public class Engine {
 			layer.drawUI(toolPanel);
 			revaluate(toolPanel);
 		}
+		painter.requestFocus();
 	}
 }
